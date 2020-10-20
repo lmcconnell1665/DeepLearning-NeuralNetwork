@@ -1,17 +1,38 @@
-#Group assignment 3
+"""
+BZAN 554 Deep Learning - Group Project #3
+
+The goal is to predict – a couple of days before it happens - the gross margin, per unit of time shown, 
+of a given product in a given show and to tune the learning procedure. Model performance is judged against
+the validation data set.
+
+Authors:
+"""
+
+######################
+#### INSTRUCTIONS ####
+######################
+
+#Part 1: Make the best possible model, as measured on a validation set.
+# You can use anything we have covered up until and including session 17. 
+# Better validation performance translates to a higher grade on the assignment.
+
+#Part 2: Coming soon 
 
 #Use the data, inputs and outputs as specified in group assignment 2.
+
+## IMPORT MODULES
 import tensorflow as tf
 import datetime as datetime
 import numpy as np
 import pandas as pd
 import itertools as it
 
+## SET LOCATION OF pricing.csv FILE
+location_of_data = '/Users/lukemcconnell/Desktop/class/Deep Learning/Tuning-NeuralNetwork/pricing.csv'
+
 ##############################
 #### STEP 0: prepare data ####
 ##############################
-
-location_of_data = '/Users/lukemcconnell/Desktop/class/Deep Learning/Tuning-NeuralNetwork/pricing.csv'
 
 data = pd.read_table(location_of_data,
                      delimiter = ';',
@@ -308,7 +329,3 @@ for grid_record in grid:
     file = open("gridresults.txt", "a")  # append mode 
     file.write(str(gridresults) + "\n")     
     file.close()    
-
-#Part 1: Make the best possible model, as measured on a validation set. You can use anything we have covered up until and including session 17. Better validation performance translates to a higher grade on the assignment.
-
-#Part 2: Coming soon 
