@@ -1,2 +1,2 @@
 # DeepLearning-NeuralNetwork
-Repo for group project #3
+Repo for BZAN 554 group project #3
