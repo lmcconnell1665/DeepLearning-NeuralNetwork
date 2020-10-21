@@ -5,7 +5,7 @@ The goal is to predict – a couple of days before it happens - the gross margin
 of a given product in a given show and to tune the learning procedure. Model performance is judged against
 the validation data set.
 
-Authors:
+Authors: Aileen Barry, Luke McConnell, Harris Taylor
 """
 
 ######################
