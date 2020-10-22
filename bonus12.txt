@@ -1,3 +1,13 @@
 Bonus 12
 
-#Related to the group assignment. Please draw up a work plan that states what each team member is responsible for, along with internal group deadlines for delivering work to the group. 
+#Related to the group assignment. Please draw up a work plan that states what each team member is responsible for, along with internal group deadlines for delivering work to the group.
+
+Roles:
+Model setup: Luke McConnell
+Model validation: Harris Taylor
+RNN improvement: Aileen Barry
+
+Schedule:
+Friday, October 23rd: Complete initial setup of tuning grid and project management schedule
+Monday, October 26th: Complete part 1 of the project
+Tuesday, October 27th: Complete part 2 of the project
