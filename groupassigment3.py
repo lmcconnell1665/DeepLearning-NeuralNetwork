@@ -16,7 +16,7 @@ Authors: Aileen Barry, Luke McConnell, Harris Taylor
 # You can use anything we have covered up until and including session 17. 
 # Better validation performance translates to a higher grade on the assignment.
 
-#Part 2: Coming soon 
+#Part 2: Make the best possible RNN, and compare its performance with the model from part 1. 
 
 #Use the data, inputs and outputs as specified in group assignment 2.
 
