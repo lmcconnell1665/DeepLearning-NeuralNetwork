@@ -26,9 +26,10 @@ import datetime as datetime
 import numpy as np
 import pandas as pd
 import itertools as it
-
+import tensorflow.python.util.deprecation as deprecation
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 ## SET LOCATION OF pricing.csv FILE
-location_of_data = '/Users/lukemcconnell/Desktop/class/Deep Learning/Tuning-NeuralNetwork/pricing.csv'
+location_of_data = 'C:\\Users\\Aileen Barry\\Documents\\BZAN554\\pricing.csv'
 
 ##############################
 #### STEP 0: prepare data ####
@@ -38,19 +39,19 @@ data = pd.read_csv(location_of_data,
                      delimiter = ';',
                      dtype = {'master_id': np.int, 
                               'show_batch': np.unicode, 
-                              'unit_offer_price': np.float, 
-                              'quantity': np.float, 
-                              'unit_cost': np.float,
-                              'gross_margin_product': np.float,
-                              'gross_margin': np.float,
-                              'gross_margin_new_customers': np.float,
-                              'gross_margin_product_new_customers': np.float,
+                              'unit_offer_price': np.float32, 
+                              'quantity': np.float32, 
+                              'unit_cost': np.float32,
+                              'gross_margin_product': np.float32,
+                              'gross_margin': np.float32,
+                              'gross_margin_new_customers': np.float32,
+                              'gross_margin_product_new_customers': np.float32,
                               'host_full_name_1_array': np.int,
                               'show_brand_label_1_array': np.int, 
                               'show_type_array': np.int,
-                              'showing_start_date_time_min': np.float,
-                              'showing_end_date_time_max': np.float,
-                              'adjusted_duration_seconds_sum': np.float, 
+                              'showing_start_date_time_min': np.float32,
+                              'showing_end_date_time_max': np.float32,
+                              'adjusted_duration_seconds_sum': np.float32, 
                               'merch_department': np.int, 
                               'merch_class_name': np.int,
                               'country_of_origin': np.int})
@@ -146,22 +147,23 @@ def build_model(nbr_hidden_layers = 3,
                 hidden_activation_function_per_layer = ['relu','relu','relu'],
                 optimizer = 'SGD',
                 learning_rate = 0.001,
-                batch_size = 1):
+                batch_size = 1,
+                timestep = 1):
 
         #destroy any previous models
         tf.keras.backend.clear_session()        
         
         #define architecture: layers, neurons, activation functions
-        inputs = tf.keras.layers.Input(shape=(3,), name = 'input' )
+        inputs = tf.keras.layers.Input(shape=(3 * timestep,), name = 'input' )
         
-        X_num_inputs = tf.keras.layers.Input(shape=(3,), name='X_num_inputs')
-        X_master_id_sparse_inputs = tf.keras.layers.Input(shape=(master_id_nbr_unique,), sparse = False, name='X_master_id_sparse_inputs')
-        X_host_full_name_1_array_sparse_inputs = tf.keras.layers.Input(shape=(host_full_name_1_array_nbr_unique,), sparse = False, name='X_host_full_name_1_array_sparse_inputs')
-        X_show_brand_label_1_array_sparse_inputs = tf.keras.layers.Input(shape=(show_brand_label_1_array_nbr_unique,), sparse = False, name='X_show_brand_label_1_array_sparse_inputs')
-        X_show_type_array_sparse_inputs = tf.keras.layers.Input(shape=(show_type_array_nbr_unique,), sparse = False, name='X_show_type_array_sparse_inputs')
-        X_merch_department_sparse_inputs = tf.keras.layers.Input(shape=(merch_department_nbr_unique,), sparse = False, name='X_merch_department_sparse_inputs')
-        X_merch_class_name_sparse_inputs = tf.keras.layers.Input(shape=(merch_class_name_nbr_unique,), sparse = False, name='X_merch_class_name_sparse_inputs')
-        X_country_of_origin_sparse_inputs = tf.keras.layers.Input(shape=(country_of_origin_nbr_unique,), sparse = False, name='X_country_of_origin_sparse_inputs')
+        X_num_inputs = tf.keras.layers.Input(shape=(3 * timestep,), name='X_num_inputs')
+        X_master_id_sparse_inputs = tf.keras.layers.Input(shape=(master_id_nbr_unique * timestep,), sparse = False, name='X_master_id_sparse_inputs')
+        X_host_full_name_1_array_sparse_inputs = tf.keras.layers.Input(shape=(host_full_name_1_array_nbr_unique * timestep,), sparse = False, name='X_host_full_name_1_array_sparse_inputs')
+        X_show_brand_label_1_array_sparse_inputs = tf.keras.layers.Input(shape=(show_brand_label_1_array_nbr_unique * timestep,), sparse = False, name='X_show_brand_label_1_array_sparse_inputs')
+        X_show_type_array_sparse_inputs = tf.keras.layers.Input(shape=(show_type_array_nbr_unique * timestep,), sparse = False, name='X_show_type_array_sparse_inputs')
+        X_merch_department_sparse_inputs = tf.keras.layers.Input(shape=(merch_department_nbr_unique * timestep,), sparse = False, name='X_merch_department_sparse_inputs')
+        X_merch_class_name_sparse_inputs = tf.keras.layers.Input(shape=(merch_class_name_nbr_unique * timestep,), sparse = False, name='X_merch_class_name_sparse_inputs')
+        X_country_of_origin_sparse_inputs = tf.keras.layers.Input(shape=(country_of_origin_nbr_unique * timestep,), sparse = False, name='X_country_of_origin_sparse_inputs')
 
         concatenated = tf.keras.layers.concatenate([X_num_inputs,
                                                     X_master_id_sparse_inputs,
@@ -241,43 +243,45 @@ def build_model(nbr_hidden_layers = 3,
 # grid_record = grid[0]
 
 
-for grid_record in grid:
+for grid_record in grid[:1]:
 
     out = build_model(nbr_hidden_layers = grid_record[0], 
                       nbr_hidden_neurons_per_layer = grid_record[1],
                       hidden_activation_function_per_layer = grid_record[2],
                       optimizer = grid_record[3],
                       learning_rate = grid_record[4],
-                      batch_size = grid_record[5]) 
+                      batch_size = grid_record[5],
+                      timestep = 5) 
     model = out[0]
     batch_size = out[1]    
     
 
     duration = []
     avg_loss_store = []
-    epochs = 5
+    epochs = 1
+    timestep = 5
+    timesteps = []
     for epoch in range(epochs):
         i = 0
         start = datetime.datetime.now()
-        avg_loss = 0    
-
+        avg_loss = 0 
         reader = pd.read_table(location_of_data,
                      delimiter = ';',
                      dtype = {'master_id': np.int, 
                               'show_batch': np.unicode, 
-                              'unit_offer_price': np.float, 
-                              'quantity': np.float, 
-                              'unit_cost': np.float,
-                              'gross_margin_product': np.float,
-                              'gross_margin': np.float,
-                              'gross_margin_new_customers': np.float,
-                              'gross_margin_product_new_customers': np.float,
+                              'unit_offer_price': np.float32, 
+                              'quantity': np.float32, 
+                              'unit_cost': np.float32,
+                              'gross_margin_product': np.float32,
+                              'gross_margin': np.float32,
+                              'gross_margin_new_customers': np.float32,
+                              'gross_margin_product_new_customers': np.float32,
                               'host_full_name_1_array': np.int,
                               'show_brand_label_1_array': np.int, 
                               'show_type_array': np.int,
-                              'showing_start_date_time_min': np.float,
-                              'showing_end_date_time_max': np.float,
-                              'adjusted_duration_seconds_sum': np.float, 
+                              'showing_start_date_time_min': np.float32,
+                              'showing_end_date_time_max': np.float32,
+                              'adjusted_duration_seconds_sum': np.float32, 
                               'merch_department': np.int, 
                               'merch_class_name': np.int,
                               'country_of_origin': np.int},
@@ -286,46 +290,49 @@ for grid_record in grid:
         counter = 0 
         for chunk in reader:
             
-            x_t = chunk
+
             counter = counter + 1
             
-            if counter == 1:
-                x_t_minus1 = x_t
-                break
+            if counter < timestep:
+                timesteps.append(chunk)
+                continue
         
-            if (i*batch_size)==1000:
+            if i >= 100:
                 break
                 
-            # join records
-            chunk_group = x_t_minus1
-            chunk_group = chunk_group.append(x_t)
+            timesteps.append(chunk)
+            timesteps = timesteps[-1 * timestep:]
             
             
             #prepare data HERE
-            X_num = np.array(chunk_group[['unit_cost', 'showing_start_date_time_min', 'unit_offer_price']]).reshape(1,6)
-            X_num = X_num - np.array([unit_cost_mean,showing_start_date_time_min_mean,unit_offer_price_mean]*2)
-            X_num = X_num / np.array([unit_cost_std,showing_start_date_time_min_std,unit_offer_price_std]*2)
-            X_num = tf.convert_to_tensor(X_num)
-
+            X_num = [np.array(c[['unit_cost', 'showing_start_date_time_min', 'unit_offer_price']], dtype=np.float32).reshape(1,3) for c in timesteps]
+            X_num = [c - np.array([unit_cost_mean,showing_start_date_time_min_mean,unit_offer_price_mean]) for c in X_num]
+            X_num = [c / np.array([unit_cost_std,showing_start_date_time_min_std,unit_offer_price_std]) for c in X_num]
+            X_num = [tf.convert_to_tensor(c, dtype=tf.float32) for c in X_num]
+            if timestep > 1:
+                X_num = tf.keras.layers.concatenate(X_num) 
+            
             #prepare one sparse tensor for each categorical state variable
-            X_master_id_sparse = sparse_tensor(np.array(chunk_group['master_id'].iloc[0]).reshape(1,1),master_id_nbr_unique)
-            X_host_full_name_1_array_sparse = sparse_tensor(chunk_group['host_full_name_1_array'].iloc[0],host_full_name_1_array_nbr_unique)
-            X_show_brand_label_1_array_sparse = sparse_tensor(chunk_group['show_brand_label_1_array'].iloc[0],show_brand_label_1_array_nbr_unique)
-            X_show_type_array_sparse = sparse_tensor(chunk_group['show_type_array'].iloc[0],show_type_array_nbr_unique)
-            X_merch_department_sparse = sparse_tensor(chunk_group['merch_department'].iloc[0],merch_department_nbr_unique)
-            X_merch_class_name_sparse = sparse_tensor(chunk_group['merch_class_name'].iloc[0],merch_class_name_nbr_unique)
-            X_country_of_origin_sparse = sparse_tensor(chunk_group['country_of_origin'].iloc[1],country_of_origin_nbr_unique)
+            X_master_id_sparse = [tf.cast(sparse_tensor(c['master_id'],master_id_nbr_unique), dtype=tf.float32) for c in timesteps]
+            X_host_full_name_1_array_sparse = [tf.cast(sparse_tensor(c['host_full_name_1_array'],host_full_name_1_array_nbr_unique), dtype=tf.float32) for c in timesteps]
+            X_show_brand_label_1_array_sparse = [tf.cast(sparse_tensor(c['show_brand_label_1_array'],show_brand_label_1_array_nbr_unique), dtype=tf.float32) for c in timesteps]
+            X_show_type_array_sparse = [tf.cast(sparse_tensor(c['show_type_array'],show_type_array_nbr_unique), dtype=tf.float32) for c in timesteps]
+            X_merch_department_sparse = [tf.cast(sparse_tensor(c['merch_department'],merch_department_nbr_unique), dtype=tf.float32) for c in timesteps]
+            X_merch_class_name_sparse = [tf.cast(sparse_tensor(c['merch_class_name'],merch_class_name_nbr_unique), dtype=tf.float32) for c in timesteps]
+            X_country_of_origin_sparse = [tf.cast(sparse_tensor(c['country_of_origin'],country_of_origin_nbr_unique), dtype=tf.float32) for c in timesteps]
             
-            #prepare a second sparse tensor for each categorical state variable
-            X_master_id_sparse = sparse_tensor(chunk_group['master_id'].iloc[1],master_id_nbr_unique)
-            X_host_full_name_1_array_sparse = sparse_tensor(chunk_group['host_full_name_1_array'].iloc[1],host_full_name_1_array_nbr_unique)
-            X_show_brand_label_1_array_sparse = sparse_tensor(chunk_group['show_brand_label_1_array'].iloc[1],show_brand_label_1_array_nbr_unique)
-            X_show_type_array_sparse = sparse_tensor(chunk_group['show_type_array'].iloc[1],show_type_array_nbr_unique)
-            X_merch_department_sparse = sparse_tensor(chunk_group['merch_department'].iloc[1],merch_department_nbr_unique)
-            X_merch_class_name_sparse = sparse_tensor(chunk_group['merch_class_name'].iloc[1],merch_class_name_nbr_unique)
-            X_country_of_origin_sparse = sparse_tensor(chunk_group['country_of_origin'].iloc[1],country_of_origin_nbr_unique)
+            #concatonate timesteps
+            if timestep > 1:
+                X_master_id_sparse = tf.keras.layers.concatenate(X_master_id_sparse) 
+                X_host_full_name_1_array_sparse = tf.keras.layers.concatenate(X_host_full_name_1_array_sparse) 
+                X_show_brand_label_1_array_sparse = tf.keras.layers.concatenate(X_show_brand_label_1_array_sparse) 
+                X_show_type_array_sparse = tf.keras.layers.concatenate(X_show_type_array_sparse)
+                X_merch_department_sparse = tf.keras.layers.concatenate(X_merch_department_sparse) 
+                X_merch_class_name_sparse = tf.keras.layers.concatenate(X_merch_class_name_sparse) 
+                X_country_of_origin_sparse = tf.keras.layers.concatenate(X_country_of_origin_sparse) 
             
-            y = chunk_group['gross_margin'] / chunk_group['adjusted_duration_seconds_sum']
+            #y for last timestep
+            y = timesteps[-1]['gross_margin'] / timesteps[-1]['adjusted_duration_seconds_sum']
             y = tf.convert_to_tensor(y)
             
             modinfo=model.fit(x=[X_num,
@@ -347,8 +354,6 @@ for grid_record in grid:
         #store the loss and training time per epoch in two arrays
         avg_loss_store.append(avg_loss)
         duration.append(datetime.datetime.now() - start)
-        
-        x_t_minus1 = x_t
         
     #store the loss and training time in RAM
     gridresults = [grid_record, avg_loss_store, duration]
