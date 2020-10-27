@@ -34,7 +34,7 @@ location_of_data = '/Users/lukemcconnell/Desktop/class/Deep Learning/Tuning-Neur
 #### STEP 0: prepare data ####
 ##############################
 
-data = pd.read_table(location_of_data,
+data = pd.read_csv(location_of_data,
                      delimiter = ';',
                      dtype = {'master_id': np.int, 
                               'show_batch': np.unicode, 
@@ -108,10 +108,9 @@ del data
 ##############################
 #### STEP 1: prepare grid ####
 ##############################
+#STEP 1: prepare grid
 
-#NUMBER OF HIDDEN LAYERS
 hidden_layers = 3
-
 grid = []
 for hidden_layers in [1,2,3]:
     nbr_hidden_layers = [[1],[2],[3]][hidden_layers-1]
@@ -128,12 +127,17 @@ for hidden_layers in [1,2,3]:
                                 optimizer,
                                 learning_rate,
                                 batch_size)))
-    
-##################################
-#### STEP 2: prepare fuction #####
-##################################
 
-#Used to specify architecture and compile model using grid
+
+
+#check if     
+# len(grid)
+# len(set(grid))
+#combinations 1 layer    + combinations 2 layers      +    combinations 3 layers
+# 1*3*3*4*3*3              +   1*(3**2)*(3**2)*4*3*3    +   1*(3**3)*(3**3)*4*3*3
+
+
+#STEP 2: Prepare fuction to specify architecture and compile model using grid
 
 #start outer loop to cycle through the grid
     #tf code that takes the options
@@ -178,7 +182,7 @@ def build_model(nbr_hidden_layers = 3,
                                       activation=hidden_activation_function_per_layer[layer],
                                       name = 'hidden' + str(layer))(x)
                 
-        outputs = tf.keras.layers.Dense(units=nbr_hidden_neurons_per_layer[layer],
+        outputs = tf.keras.layers.Dense(units=1,
                                       activation="linear",
                                       name = 'output')(x)
         
@@ -231,12 +235,11 @@ def build_model(nbr_hidden_layers = 3,
 #                 batch_size = 1)        
 # test[0].summary()
 
-#################################
-#### STEP 3: train the model ####
-#################################
-# by reading data JIT and saving loss and training time
+
+##STEP 3: train the model by reading data JIT and saving loss and training time
 
 # grid_record = grid[0]
+
 
 for grid_record in grid:
 
@@ -278,29 +281,51 @@ for grid_record in grid:
                               'merch_department': np.int, 
                               'merch_class_name': np.int,
                               'country_of_origin': np.int},
-                     chunksize = batch_size)
+                     chunksize = 1)
         
+        counter = 0 
         for chunk in reader:
+            
+            x_t = chunk
+            counter = counter + 1
+            
+            if counter == 1:
+                x_t_minus1 = x_t
+                break
         
             if (i*batch_size)==1000:
                 break
+                
+            # join records
+            chunk_group = x_t_minus1
+            chunk_group = chunk_group.append(x_t)
+            
             
             #prepare data HERE
-            X_num = np.array(chunk[['unit_cost', 'showing_start_date_time_min', 'unit_offer_price']]).reshape(len(chunk),3)
-            X_num = X_num - np.array([unit_cost_mean,showing_start_date_time_min_mean,unit_offer_price_mean])
-            X_num = X_num / np.array([unit_cost_std,showing_start_date_time_min_std,unit_offer_price_std])
+            X_num = np.array(chunk_group[['unit_cost', 'showing_start_date_time_min', 'unit_offer_price']]).reshape(1,6)
+            X_num = X_num - np.array([unit_cost_mean,showing_start_date_time_min_mean,unit_offer_price_mean]*2)
+            X_num = X_num / np.array([unit_cost_std,showing_start_date_time_min_std,unit_offer_price_std]*2)
             X_num = tf.convert_to_tensor(X_num)
 
             #prepare one sparse tensor for each categorical state variable
-            X_master_id_sparse = sparse_tensor(chunk['master_id'],master_id_nbr_unique)
-            X_host_full_name_1_array_sparse = sparse_tensor(chunk['host_full_name_1_array'],host_full_name_1_array_nbr_unique)
-            X_show_brand_label_1_array_sparse = sparse_tensor(chunk['show_brand_label_1_array'],show_brand_label_1_array_nbr_unique)
-            X_show_type_array_sparse = sparse_tensor(chunk['show_type_array'],show_type_array_nbr_unique)
-            X_merch_department_sparse = sparse_tensor(chunk['merch_department'],merch_department_nbr_unique)
-            X_merch_class_name_sparse = sparse_tensor(chunk['merch_class_name'],merch_class_name_nbr_unique)
-            X_country_of_origin_sparse = sparse_tensor(chunk['country_of_origin'],country_of_origin_nbr_unique)
+            X_master_id_sparse = sparse_tensor(np.array(chunk_group['master_id'].iloc[0]).reshape(1,1),master_id_nbr_unique)
+            X_host_full_name_1_array_sparse = sparse_tensor(chunk_group['host_full_name_1_array'].iloc[0],host_full_name_1_array_nbr_unique)
+            X_show_brand_label_1_array_sparse = sparse_tensor(chunk_group['show_brand_label_1_array'].iloc[0],show_brand_label_1_array_nbr_unique)
+            X_show_type_array_sparse = sparse_tensor(chunk_group['show_type_array'].iloc[0],show_type_array_nbr_unique)
+            X_merch_department_sparse = sparse_tensor(chunk_group['merch_department'].iloc[0],merch_department_nbr_unique)
+            X_merch_class_name_sparse = sparse_tensor(chunk_group['merch_class_name'].iloc[0],merch_class_name_nbr_unique)
+            X_country_of_origin_sparse = sparse_tensor(chunk_group['country_of_origin'].iloc[1],country_of_origin_nbr_unique)
             
-            y = chunk['gross_margin'] / chunk['adjusted_duration_seconds_sum']
+            #prepare a second sparse tensor for each categorical state variable
+            X_master_id_sparse = sparse_tensor(chunk_group['master_id'].iloc[1],master_id_nbr_unique)
+            X_host_full_name_1_array_sparse = sparse_tensor(chunk_group['host_full_name_1_array'].iloc[1],host_full_name_1_array_nbr_unique)
+            X_show_brand_label_1_array_sparse = sparse_tensor(chunk_group['show_brand_label_1_array'].iloc[1],show_brand_label_1_array_nbr_unique)
+            X_show_type_array_sparse = sparse_tensor(chunk_group['show_type_array'].iloc[1],show_type_array_nbr_unique)
+            X_merch_department_sparse = sparse_tensor(chunk_group['merch_department'].iloc[1],merch_department_nbr_unique)
+            X_merch_class_name_sparse = sparse_tensor(chunk_group['merch_class_name'].iloc[1],merch_class_name_nbr_unique)
+            X_country_of_origin_sparse = sparse_tensor(chunk_group['country_of_origin'].iloc[1],country_of_origin_nbr_unique)
+            
+            y = chunk_group['gross_margin'] / chunk_group['adjusted_duration_seconds_sum']
             y = tf.convert_to_tensor(y)
             
             modinfo=model.fit(x=[X_num,
@@ -323,9 +348,12 @@ for grid_record in grid:
         avg_loss_store.append(avg_loss)
         duration.append(datetime.datetime.now() - start)
         
+        x_t_minus1 = x_t
+        
     #store the loss and training time in RAM
     gridresults = [grid_record, avg_loss_store, duration]
     #and also on disk:
     file = open("gridresults.txt", "a")  # append mode 
     file.write(str(gridresults) + "\n")     
     file.close()    
+
