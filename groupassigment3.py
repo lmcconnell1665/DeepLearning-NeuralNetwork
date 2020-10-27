@@ -28,8 +28,10 @@ import pandas as pd
 import itertools as it
 import tensorflow.python.util.deprecation as deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
+
 ## SET LOCATION OF pricing.csv FILE
-location_of_data = 'C:\\Users\\Aileen Barry\\Documents\\BZAN554\\pricing.csv'
+#location_of_data = 'C:\\Users\\Aileen Barry\\Documents\\BZAN554\\pricing.csv'
+location_of_data = '/Users/lukemcconnell/Desktop/class/Deep Learning/Tuning-NeuralNetwork/pricing.csv'
 
 ##############################
 #### STEP 0: prepare data ####
@@ -55,6 +57,10 @@ data = pd.read_csv(location_of_data,
                               'merch_department': np.int, 
                               'merch_class_name': np.int,
                               'country_of_origin': np.int})
+
+# Sort the data by time and over-write the existing file
+data = data.sort_values(by = 'showing_start_date_time_min')
+data.to_csv(location_of_data)
 
 # data.shape
 # data.info()
