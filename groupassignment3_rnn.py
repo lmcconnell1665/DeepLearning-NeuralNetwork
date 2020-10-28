@@ -29,14 +29,14 @@ import pandas as pd
 import itertools as it
 
 ## SET LOCATION OF pricing.csv FILE
-location_of_data = 'C:\\Users\\Aileen Barry\\Documents\\BZAN554\\pricing.csv'
+location_of_data = 'C:\\Users\\Aileen Barry\\Documents\\BZAN554\\pricing_ordered.csv'
 
 ##############################
 #### STEP 0: prepare data ####
 ##############################
 
 data = pd.read_table(location_of_data,
-                     delimiter = ';',
+                     delimiter = ',',
                      dtype = {'master_id': np.int, 
                               'show_batch': np.unicode, 
                               'unit_offer_price': np.float, 
@@ -104,6 +104,8 @@ country_of_origin_nbr_unique = np.max(np.unique(data['country_of_origin']))  + 1
 
 total_number_instances = len(data)
 
+num_features = master_id_nbr_unique + host_full_name_1_array_nbr_unique + show_brand_label_1_array_nbr_unique + show_type_array_nbr_unique + merch_department_nbr_unique + merch_class_name_nbr_unique + country_of_origin_nbr_unique + 3
+
 # order dataframe by showing_start_date_time_min
 data = data.sort_values(by = ['showing_start_date_time_min'])
 
@@ -115,54 +117,128 @@ data = data.sort_values(by = ['showing_start_date_time_min'])
 
 #start outer loop to cycle through the grid
     #tf code that takes the options
-def prepare_data():
-
-        #destroy any previous models
-        tf.keras.backend.clear_session()        
+def prepare_data():     
         
        
-        X_num_inputs = tf.keras.layers.Input(shape=(3,), name='X_num_inputs')
-        X_master_id_sparse_inputs = tf.keras.layers.Input(shape=(master_id_nbr_unique,), sparse = False, name='X_master_id_sparse_inputs')
-        X_host_full_name_1_array_sparse_inputs = tf.keras.layers.Input(shape=(host_full_name_1_array_nbr_unique,), sparse = False, name='X_host_full_name_1_array_sparse_inputs')
-        X_show_brand_label_1_array_sparse_inputs = tf.keras.layers.Input(shape=(show_brand_label_1_array_nbr_unique,), sparse = False, name='X_show_brand_label_1_array_sparse_inputs')
-        X_show_type_array_sparse_inputs = tf.keras.layers.Input(shape=(show_type_array_nbr_unique,), sparse = False, name='X_show_type_array_sparse_inputs')
-        X_merch_department_sparse_inputs = tf.keras.layers.Input(shape=(merch_department_nbr_unique,), sparse = False, name='X_merch_department_sparse_inputs')
-        X_merch_class_name_sparse_inputs = tf.keras.layers.Input(shape=(merch_class_name_nbr_unique,), sparse = False, name='X_merch_class_name_sparse_inputs')
-        X_country_of_origin_sparse_inputs = tf.keras.layers.Input(shape=(country_of_origin_nbr_unique,), sparse = False, name='X_country_of_origin_sparse_inputs')
+             
+        
 
-        concatenated = tf.keras.layers.concatenate([X_num_inputs,
+##################################
+###### STEP 3: train model #######
+################################## 
+inputs = tf.keras.layers.Input(shape = (1000, num_features)) #no need to specify length of sequence (set first dimension to None)
+X_num_inputs = tf.keras.layers.Input(shape=(3,), name='X_num_inputs')
+X_master_id_sparse_inputs = tf.keras.layers.Input(shape=(master_id_nbr_unique,), sparse = False, name='X_master_id_sparse_inputs')
+X_host_full_name_1_array_sparse_inputs = tf.keras.layers.Input(shape=(host_full_name_1_array_nbr_unique,), sparse = False, name='X_host_full_name_1_array_sparse_inputs')
+X_show_brand_label_1_array_sparse_inputs = tf.keras.layers.Input(shape=(show_brand_label_1_array_nbr_unique,), sparse = False, name='X_show_brand_label_1_array_sparse_inputs')
+X_show_type_array_sparse_inputs = tf.keras.layers.Input(shape=(show_type_array_nbr_unique,), sparse = False, name='X_show_type_array_sparse_inputs')
+X_merch_department_sparse_inputs = tf.keras.layers.Input(shape=(merch_department_nbr_unique,), sparse = False, name='X_merch_department_sparse_inputs')
+X_merch_class_name_sparse_inputs = tf.keras.layers.Input(shape=(merch_class_name_nbr_unique,), sparse = False, name='X_merch_class_name_sparse_inputs')
+X_country_of_origin_sparse_inputs = tf.keras.layers.Input(shape=(country_of_origin_nbr_unique,), sparse = False, name='X_country_of_origin_sparse_inputs')
+
+concatenated = tf.keras.layers.concatenate([X_num_inputs,
                                                     X_master_id_sparse_inputs,
                                                     X_host_full_name_1_array_sparse_inputs,
                                                     X_show_brand_label_1_array_sparse_inputs,
                                                     X_show_type_array_sparse_inputs,
                                                     X_merch_department_sparse_inputs,
                                                     X_merch_class_name_sparse_inputs,
-                                                    X_country_of_origin_sparse_inputs])        
-        
+                                                    X_country_of_origin_sparse_inputs])
+concatenated = tf.reshape(concatenated, shape = (-1, 1000, num_features))
 
-##################################
-###### STEP 3: train model #######
-################################## 
-inputs = tf.keras.layers.Input(shape = (None,1)) #no need to specify length of sequence (set first dimension to None)
-rrn1 = tf.keras.layers.LSTM(100, return_sequences = True)(inputs) 
+rrn1 = tf.keras.layers.LSTM(100, return_sequences = True)(concatenated) 
 rrn2 = tf.keras.layers.LSTM(50, return_sequences = True)(rrn1) 
 rrn3 = tf.keras.layers.LSTM(20, return_sequences = True)(rrn2) #NOTE return_sequences = True
-outputs = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(10))(rrn3) 
+outputs = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1))(rrn3) 
 
 #Create model 
-model = tf.keras.Model(inputs = inputs, outputs = outputs)
+model = tf.keras.Model(inputs = [X_num_inputs,
+                                 X_master_id_sparse_inputs,
+                                 X_host_full_name_1_array_sparse_inputs,
+                                 X_show_brand_label_1_array_sparse_inputs,
+                                 X_show_type_array_sparse_inputs,
+                                 X_merch_department_sparse_inputs,
+                                 X_merch_class_name_sparse_inputs,
+                                 X_country_of_origin_sparse_inputs],
+                       outputs = outputs)
 
 #Compile model
 model.compile(loss = 'mse', optimizer = tf.keras.optimizers.Adam(lr = 0.001))
 
-#Fit model
-model.fit(x=X_train,y=y_train, batch_size=10, epochs=10) #this can be run any number of times and it will start from the last version of the weights. To reset the weights, rerun the specification to trigger the random initialization.
+batch_size = 1000
+counter = 0
+reader = pd.read_table(location_of_data,
+                     delimiter = ',',
+                     dtype = {'master_id': np.int, 
+                              'show_batch': np.unicode, 
+                              'unit_offer_price': np.float, 
+                              'quantity': np.float, 
+                              'unit_cost': np.float,
+                              'gross_margin_product': np.float,
+                              'gross_margin': np.float,
+                              'gross_margin_new_customers': np.float,
+                              'gross_margin_product_new_customers': np.float,
+                              'host_full_name_1_array': np.int,
+                              'show_brand_label_1_array': np.int, 
+                              'show_type_array': np.int,
+                              'showing_start_date_time_min': np.float,
+                              'showing_end_date_time_max': np.float,
+                              'adjusted_duration_seconds_sum': np.float, 
+                              'merch_department': np.int, 
+                              'merch_class_name': np.int,
+                              'country_of_origin': np.int},
+                     chunksize = 1)
+time_window = pd.DataFrame()
+for chunk in reader:
+    counter += 1
+    if counter <= batch_size:
+        time_window = time_window.append(chunk)
+        continue
+    
+    time_window = time_window.append(chunk)
+    time_window = time_window.iloc[1:]
+    #prepare data HERE
+    X_num = np.array(time_window[['unit_cost', 'showing_start_date_time_min', 'unit_offer_price']]).reshape(len(time_window),3)
+    X_num = X_num - np.array([unit_cost_mean,showing_start_date_time_min_mean,unit_offer_price_mean])
+    X_num = X_num / np.array([unit_cost_std,showing_start_date_time_min_std,unit_offer_price_std])
+    X_num = tf.convert_to_tensor(X_num)
 
-y_hat = model.predict(X_test)
-y_hat.shape
-#get the value of the last time step only (as that is the only one we care about in 
-#a prediction context).
-np.mean(tf.keras.losses.mean_squared_error(y_test[:,-1,:],y_hat[:,-1,:]))
-#0.012704682               
-#About the same. What happens when you get more batches and do more epochs?  
+    #prepare one sparse tensor for each categorical state variable
+    X_master_id_sparse = sparse_tensor(time_window['master_id'],master_id_nbr_unique)
+    X_host_full_name_1_array_sparse = sparse_tensor(time_window['host_full_name_1_array'],host_full_name_1_array_nbr_unique)
+    X_show_brand_label_1_array_sparse = sparse_tensor(time_window['show_brand_label_1_array'],show_brand_label_1_array_nbr_unique)
+    X_show_type_array_sparse = sparse_tensor(time_window['show_type_array'],show_type_array_nbr_unique)
+    X_merch_department_sparse = sparse_tensor(time_window['merch_department'],merch_department_nbr_unique)
+    X_merch_class_name_sparse = sparse_tensor(time_window['merch_class_name'],merch_class_name_nbr_unique)
+    X_country_of_origin_sparse = sparse_tensor(time_window['country_of_origin'],country_of_origin_nbr_unique)
+            
+    y = time_window['gross_margin'] / time_window['adjusted_duration_seconds_sum']
+    y = tf.convert_to_tensor(y)
+    
+    # NUMBER OF RECORDS
+#     if counter >= 1050:
+#         break
+
+    #Fit model
+    X_train = [X_num,
+               X_master_id_sparse,
+               X_host_full_name_1_array_sparse,
+               X_show_brand_label_1_array_sparse,
+               X_show_type_array_sparse,
+               X_merch_department_sparse,
+               X_merch_class_name_sparse,
+               X_country_of_origin_sparse]
+    y_train = y
+    model.fit(x=X_train,y=y_train, batch_size=batch_size, epochs=1)#this can be run any number of times and it will start from the last version of the weights. To reset the weights, rerun the specification to trigger the random initialization.
+    #!mkdir -p rnn_model
+    if counter % 10 == 0:
+        model.save('rnn_model/my_model')
+
+#     y_hat = model.predict(X_test)
+#     y_hat.shape
+#     #get the value of the last time step only (as that is the only one we care about in 
+#     #a prediction context).
+#     np.mean(tf.keras.losses.mean_squared_error(y_test[:,-1,:],y_hat[:,-1,:]))
+#     #0.012704682               
+#     #About the same. What happens when you get more batches and do more epochs?  
     
